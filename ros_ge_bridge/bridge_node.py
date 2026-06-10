@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+PROTOCOL_VERSION = "1.0"
 """
 bridge_node.py
 ──────────────
@@ -36,6 +37,7 @@ MAGIC = 0x5244          # "RD" — her pakette imza
 
 # Kontrol mesaj tipleri (TCP) — Godot → Bridge
 class CtrlCmd(IntEnum):
+    HELLO            = 0x00
     DISCOVER_REQUEST = 0x01   # topic listesi iste
     SUBSCRIBE        = 0x02   # topic'e abone ol
     UNSUBSCRIBE      = 0x03   # aboneliği kes
@@ -43,6 +45,7 @@ class CtrlCmd(IntEnum):
 
 # Kontrol mesaj tipleri (TCP) — Bridge → Godot
 class CtrlResp(IntEnum):
+    HELLO_ACK        = 0x80
     DISCOVER_RESPONSE = 0x81  # topic listesi cevabı
     ACK               = 0x82  # komut onayı
     ERROR             = 0x83  # hata
@@ -202,7 +205,10 @@ class BridgeNode(Node):
     # ──────────────────────────────────────────────────────
 
     def _dispatch(self, conn: socket.socket, msg_type: int, payload: bytes):
-        if msg_type == CtrlCmd.DISCOVER_REQUEST:
+        if msg_type == CtrlCmd.HELLO:
+            self._cmd_hello(conn, payload)
+
+        elif msg_type == CtrlCmd.DISCOVER_REQUEST:
             self._cmd_discover(conn)
 
         elif msg_type == CtrlCmd.SUBSCRIBE:
@@ -225,6 +231,37 @@ class BridgeNode(Node):
     # ──────────────────────────────────────────────────────
     # DISCOVER — ROS2 topic listesi
     # ──────────────────────────────────────────────────────
+
+    def _cmd_hello(self, conn, payload):
+        data = json.loads(payload.decode('utf-8'))
+        client_version = data.get('version', '0.0')
+
+        client_major = int(client_version.split('.')[0])
+        bridge_major = int(PROTOCOL_VERSION.split('.')[0])
+
+        if client_major != bridge_major:
+            resp = json.dumps({
+                'expected': PROTOCOL_VERSION,
+                'got': client_version
+            }).encode('utf-8')
+            conn.sendall(pack_ctrl(CtrlResp.VERSION_ERROR, resp))
+            self.get_logger().warning(
+                f'Versiyon uyumsuz: beklenen {PROTOCOL_VERSION}, gelen {client_version}'
+            )
+            conn.close()
+            return
+
+        client_minor = int(client_version.split('.')[1])
+        bridge_minor = int(PROTOCOL_VERSION.split('.')[1])
+
+        if client_minor != bridge_minor:
+            self.get_logger().warning(
+                f'Minor versiyon farkı: bridge={PROTOCOL_VERSION}, client={client_version}'
+            )
+
+        resp = json.dumps({'version': PROTOCOL_VERSION}).encode('utf-8')
+        conn.sendall(pack_ctrl(CtrlResp.HELLO_ACK, resp))
+        self.get_logger().info(f'Handshake tamam: client v{client_version}')
 
     def _cmd_discover(self, conn: socket.socket):
         """
