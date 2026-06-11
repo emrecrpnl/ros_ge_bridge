@@ -1,0 +1,27 @@
+[0.587s] Invoking command in '/root/ros2_ws/src/ros_ge_bridge/build/ros_ge_bridge': PYTHONPATH=/root/ros2_ws/src/ros_ge_bridge/build/ros_ge_bridge/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/root/ros2_ws/src/ros_ge_bridge/install/ros_ge_bridge/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /root/ros2_ws/src/ros_ge_bridge/build/ros_ge_bridge/build --no-deps symlink_data
+[0.823s] running develop
+[0.947s] running egg_info
+[0.947s] creating ros_ge_bridge.egg-info
+[0.947s] writing ros_ge_bridge.egg-info/PKG-INFO
+[0.948s] writing dependency_links to ros_ge_bridge.egg-info/dependency_links.txt
+[0.948s] writing entry points to ros_ge_bridge.egg-info/entry_points.txt
+[0.948s] writing requirements to ros_ge_bridge.egg-info/requires.txt
+[0.948s] writing top-level names to ros_ge_bridge.egg-info/top_level.txt
+[0.948s] writing manifest file 'ros_ge_bridge.egg-info/SOURCES.txt'
+[0.949s] reading manifest file 'ros_ge_bridge.egg-info/SOURCES.txt'
+[0.950s] writing manifest file 'ros_ge_bridge.egg-info/SOURCES.txt'
+[0.951s] running build_ext
+[0.951s] Creating /root/ros2_ws/src/ros_ge_bridge/install/ros_ge_bridge/lib/python3.10/site-packages/ros-ge-bridge.egg-link (link to .)
+[0.952s] Installing bridge_node script to /root/ros2_ws/src/ros_ge_bridge/install/ros_ge_bridge/lib/ros_ge_bridge
+[0.952s] Installing fake_turtle script to /root/ros2_ws/src/ros_ge_bridge/install/ros_ge_bridge/lib/ros_ge_bridge
+[0.953s] 
+[0.953s] Installed /root/ros2_ws/src/ros_ge_bridge/build/ros_ge_bridge
+[0.953s] running symlink_data
+[0.953s] creating /root/ros2_ws/src/ros_ge_bridge/install/ros_ge_bridge/share/ament_index
+[0.953s] creating /root/ros2_ws/src/ros_ge_bridge/install/ros_ge_bridge/share/ament_index/resource_index
+[0.953s] creating /root/ros2_ws/src/ros_ge_bridge/install/ros_ge_bridge/share/ament_index/resource_index/packages
+[0.953s] symbolically linking /root/ros2_ws/src/ros_ge_bridge/build/ros_ge_bridge/resource/ros_ge_bridge -> /root/ros2_ws/src/ros_ge_bridge/install/ros_ge_bridge/share/ament_index/resource_index/packages
+[0.953s] symbolically linking /root/ros2_ws/src/ros_ge_bridge/build/ros_ge_bridge/package.xml -> /root/ros2_ws/src/ros_ge_bridge/install/ros_ge_bridge/share/ros_ge_bridge
+[0.953s] creating /root/ros2_ws/src/ros_ge_bridge/install/ros_ge_bridge/share/ros_ge_bridge/launch
+[0.953s] symbolically linking /root/ros2_ws/src/ros_ge_bridge/build/ros_ge_bridge/launch/simulation.launch.py -> /root/ros2_ws/src/ros_ge_bridge/install/ros_ge_bridge/share/ros_ge_bridge/launch
+[0.984s] Invoked command in '/root/ros2_ws/src/ros_ge_bridge/build/ros_ge_bridge' returned '0': PYTHONPATH=/root/ros2_ws/src/ros_ge_bridge/build/ros_ge_bridge/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/root/ros2_ws/src/ros_ge_bridge/install/ros_ge_bridge/lib/python3.10/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /root/ros2_ws/src/ros_ge_bridge/build/ros_ge_bridge/build --no-deps symlink_data

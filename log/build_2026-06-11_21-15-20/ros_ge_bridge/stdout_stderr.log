@@ -1,0 +1,25 @@
+running develop
+running egg_info
+creating ros_ge_bridge.egg-info
+writing ros_ge_bridge.egg-info/PKG-INFO
+writing dependency_links to ros_ge_bridge.egg-info/dependency_links.txt
+writing entry points to ros_ge_bridge.egg-info/entry_points.txt
+writing requirements to ros_ge_bridge.egg-info/requires.txt
+writing top-level names to ros_ge_bridge.egg-info/top_level.txt
+writing manifest file 'ros_ge_bridge.egg-info/SOURCES.txt'
+reading manifest file 'ros_ge_bridge.egg-info/SOURCES.txt'
+writing manifest file 'ros_ge_bridge.egg-info/SOURCES.txt'
+running build_ext
+Creating /root/ros2_ws/src/ros_ge_bridge/install/ros_ge_bridge/lib/python3.10/site-packages/ros-ge-bridge.egg-link (link to .)
+Installing bridge_node script to /root/ros2_ws/src/ros_ge_bridge/install/ros_ge_bridge/lib/ros_ge_bridge
+Installing fake_turtle script to /root/ros2_ws/src/ros_ge_bridge/install/ros_ge_bridge/lib/ros_ge_bridge
+
+Installed /root/ros2_ws/src/ros_ge_bridge/build/ros_ge_bridge
+running symlink_data
+creating /root/ros2_ws/src/ros_ge_bridge/install/ros_ge_bridge/share/ament_index
+creating /root/ros2_ws/src/ros_ge_bridge/install/ros_ge_bridge/share/ament_index/resource_index
+creating /root/ros2_ws/src/ros_ge_bridge/install/ros_ge_bridge/share/ament_index/resource_index/packages
+symbolically linking /root/ros2_ws/src/ros_ge_bridge/build/ros_ge_bridge/resource/ros_ge_bridge -> /root/ros2_ws/src/ros_ge_bridge/install/ros_ge_bridge/share/ament_index/resource_index/packages
+symbolically linking /root/ros2_ws/src/ros_ge_bridge/build/ros_ge_bridge/package.xml -> /root/ros2_ws/src/ros_ge_bridge/install/ros_ge_bridge/share/ros_ge_bridge
+creating /root/ros2_ws/src/ros_ge_bridge/install/ros_ge_bridge/share/ros_ge_bridge/launch
+symbolically linking /root/ros2_ws/src/ros_ge_bridge/build/ros_ge_bridge/launch/simulation.launch.py -> /root/ros2_ws/src/ros_ge_bridge/install/ros_ge_bridge/share/ros_ge_bridge/launch

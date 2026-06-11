@@ -14,6 +14,7 @@ Veri kanalı    : UDP :9000  (msgpack ile serialize edilmiş topic verisi)
     ros2 run <paket> bridge_node
 """
 
+import uuid
 import json
 import socket
 import struct
@@ -118,15 +119,13 @@ def load_ros_msg_class(type_str: str):
 
 class BridgeNode(Node):
     def __init__(self):
-        super().__init__('ros_godot_bridge')
+        super().__init__('ros_godot_bridge'),
 
-        # topic_name → rclpy subscription nesnesi
-        self._active_subs: dict[str, object] = {}
+        self._active_subs: dict[str, object] = {}  # topic → rclpy subscription
         self._subs_lock = threading.Lock()
-
-        # UDP soketi — Godot'a veri gönderir
         self._udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self._godot_udp_addr: tuple | None = None   # (ip, port) — TCP bağlantısından öğrenilir
+        self._ge_clients: dict[str, dict] = {}        # client_id → client info
+        self._ge_clients_lock = threading.Lock()
 
         # TCP sunucusu — ayrı thread'de çalışır
         self._tcp_thread = threading.Thread(target=self._tcp_server, daemon=True)
@@ -152,43 +151,58 @@ class BridgeNode(Node):
         while True:
             try:
                 conn, addr = srv.accept()
-                self.get_logger().info(f'Godot bağlandı: {addr}')
-                # UDP cevapları bu IP'ye gönderilecek
-                self._godot_udp_addr = (addr[0], UDP_PORT)
+                client_id = str(uuid.uuid4())  # ← ekle
+
+                # Client'ı kaydet
+                with self._ge_clients_lock:
+                    self._ge_clients[client_id] = {
+                        "conn": conn,
+                        "udp_addr": (addr[0], UDP_PORT),
+                        "subscriptions": set()
+                    }
+
+                self.get_logger().info(f'Godot bağlandı: {addr} [{client_id[:8]}]')
+
                 t = threading.Thread(
                     target=self._handle_client,
-                    args=(conn, addr),
+                    args=(conn, addr, client_id),  # ← client_id ekle
                     daemon=True
                 )
                 t.start()
             except Exception:
                 traceback.print_exc()
 
-    def _handle_client(self, conn: socket.socket, addr):
-        """Tek bir Godot bağlantısını yönetir."""
-        try:
-            while True:
-                # Header oku
-                raw = self._recv_exact(conn, CTRL_HEADER_SIZE)
-                if not raw:
-                    break
+    def _handle_client(self, conn, addr, client_id):
+            try:
+                while True:
+                    raw = self._recv_exact(conn, CTRL_HEADER_SIZE)
+                    if not raw:
+                        break
+                    magic, msg_type, payload_len = unpack_ctrl_header(raw)
+                    if magic != MAGIC:
+                        break
+                    payload = self._recv_exact(conn, payload_len) if payload_len > 0 else b''
+                    self._dispatch(conn, msg_type, payload, client_id)
 
-                magic, msg_type, payload_len = unpack_ctrl_header(raw)
+            except Exception:
+                traceback.print_exc()
+            finally:
+                with self._ge_clients_lock:
+                    if client_id in self._ge_clients:
+                        subs = self._ge_clients[client_id]["subscriptions"].copy()
+                        del self._ge_clients[client_id]
 
-                if magic != MAGIC:
-                    self.get_logger().warning(f'Geçersiz magic: 0x{magic:04X}')
-                    break
+                with self._subs_lock:
+                    for topic in subs:
+                        still_needed = any(
+                            topic in c["subscriptions"]
+                            for c in self._ge_clients.values()
+                        )
+                        if not still_needed and topic in self._active_subs:
+                            self.destroy_subscription(self._active_subs.pop(topic))
 
-                # Payload oku
-                payload = self._recv_exact(conn, payload_len) if payload_len > 0 else b''
-
-                self._dispatch(conn, msg_type, payload)
-
-        except Exception:
-            traceback.print_exc()
-        finally:
-            self.get_logger().info(f'Godot bağlantısı kapandı: {addr}')
-            conn.close()
+                self.get_logger().info(f'Godot bağlantısı kapandı: {addr}')
+                conn.close()
 
     def _recv_exact(self, conn: socket.socket, n: int) -> bytes | None:
         """Tam olarak n bayt okur. Bağlantı kopunca None döner."""
@@ -203,8 +217,7 @@ class BridgeNode(Node):
     # ──────────────────────────────────────────────────────
     # Komut yönlendirici
     # ──────────────────────────────────────────────────────
-
-    def _dispatch(self, conn: socket.socket, msg_type: int, payload: bytes):
+    def _dispatch(self, conn, msg_type, payload, client_id):
         if msg_type == CtrlCmd.HELLO:
             self._cmd_hello(conn, payload)
 
@@ -213,11 +226,11 @@ class BridgeNode(Node):
 
         elif msg_type == CtrlCmd.SUBSCRIBE:
             data = json.loads(payload.decode('utf-8'))
-            self._cmd_subscribe(conn, data['topic'], data['type'])
+            self._cmd_subscribe(conn, data['topic'], data['type'], client_id)
 
         elif msg_type == CtrlCmd.UNSUBSCRIBE:
             data = json.loads(payload.decode('utf-8'))
-            self._cmd_unsubscribe(conn, data['topic'])
+            self._cmd_unsubscribe(conn, data['topic'], client_id)
 
         elif msg_type == CtrlCmd.PUBLISH:
             data = msgpack.unpackb(payload, raw=False)
@@ -309,7 +322,11 @@ class BridgeNode(Node):
     # SUBSCRIBE — dinamik abone ol
     # ──────────────────────────────────────────────────────
 
-    def _cmd_subscribe(self, conn: socket.socket, topic: str, type_str: str):
+    def _cmd_subscribe(self, conn: socket.socket, topic: str, type_str: str, client_id):
+        with self._ge_clients_lock:
+            if client_id in self._ge_clients:
+                self._ge_clients[client_id]["subscriptions"].add(topic)
+
         with self._subs_lock:
             if topic in self._active_subs:
                 self._send_ack(conn, topic)
@@ -342,7 +359,23 @@ class BridgeNode(Node):
     # UNSUBSCRIBE
     # ──────────────────────────────────────────────────────
 
-    def _cmd_unsubscribe(self, conn: socket.socket, topic: str):
+    def _cmd_unsubscribe(self, conn: socket.socket, topic: str, client_id):
+        with self._ge_clients_lock:
+            if client_id in self._ge_clients:
+                self._ge_clients[client_id]["subscriptions"].discard(topic)
+        
+        with self._ge_clients_lock:
+            still_needed = any(
+                topic in c["subscriptions"]
+                for c in self._ge_clients.values()
+        )
+
+        if not still_needed:
+            with self._subs_lock:
+                if topic in self._active_subs:
+                    self.destroy_subscription(self._active_subs.pop(topic))
+                    self.get_logger().info(f'Subscription kaldırıldı: {topic}')
+
         with self._subs_lock:
             if topic in self._active_subs:
                 self.destroy_subscription(self._active_subs.pop(topic))
@@ -386,15 +419,19 @@ class BridgeNode(Node):
     # ──────────────────────────────────────────────────────
 
     def _on_ros_msg(self, topic: str, msg):
-        if self._godot_udp_addr is None:
-            return
+        #if self._godot_udp_addr is None:
+        #    return
 
         try:
             # ROS2 mesajı → OrderedDict → msgpack bytes
             msg_dict = message_to_ordereddict(msg)
             payload  = msgpack.packb(msg_dict, use_bin_type=True)
             packet   = pack_stream(topic, payload)
-            self._udp_sock.sendto(packet, self._godot_udp_addr)
+            with self._ge_clients_lock:
+                for client in self._ge_clients.values():
+                    if topic in client["subscriptions"]:
+                        self._udp_sock.sendto(packet, client["udp_addr"])
+        
         except Exception:
             traceback.print_exc()
 

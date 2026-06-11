@@ -1,0 +1,4 @@
+[console_scripts]
+bridge_node = ros_ge_bridge.bridge_node:main
+fake_turtle = ros_ge_bridge.turtle_sim_fake:main
+
