@@ -192,7 +192,6 @@ class BridgeNode(Node):
                     if client_id in self._ge_clients:
                         subs = self._ge_clients[client_id]["subscriptions"].copy()
                         del self._ge_clients[client_id]
-
                 with self._subs_lock:
                     for topic in subs:
                         still_needed = any(
@@ -201,8 +200,8 @@ class BridgeNode(Node):
                         )
                         if not still_needed and topic in self._active_subs:
                             self.destroy_subscription(self._active_subs.pop(topic))
-
-                self.get_logger().info(f'Godot bağlantısı kapandı: {addr}')
+                            self.get_logger().info(f'Subscription temizlendi: {topic}')
+                self.get_logger().info(f'Godot bağlantısı kapandı: {addr} [{client_id[:8]}]')
                 conn.close()
 
     def _recv_exact(self, conn: socket.socket, n: int) -> bytes | None:
