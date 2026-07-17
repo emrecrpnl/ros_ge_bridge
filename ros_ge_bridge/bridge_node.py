@@ -134,6 +134,7 @@ class BridgeNode(Node):
         self.get_logger().info('Bridge node başladı.')
         self.get_logger().info(f'  TCP kontrol : {TCP_HOST}:{TCP_PORT}')
         self.get_logger().info(f'  UDP veri    : → Godot:{UDP_PORT}')
+        self._udp_lock = threading.Lock()
 
 
     # ──────────────────────────────────────────────────────
@@ -423,18 +424,23 @@ class BridgeNode(Node):
         #    return
 
         try:
-            # ROS2 mesajı → OrderedDict → msgpack bytes
             msg_dict = message_to_ordereddict(msg)
             payload  = msgpack.packb(msg_dict, use_bin_type=True)
             packet   = pack_stream(topic, payload)
+
             with self._ge_clients_lock:
-                for client in self._ge_clients.values():
-                    if topic in client["subscriptions"]:
-                        self._udp_sock.sendto(packet, client["udp_addr"])
-        
+                targets = [
+                    client["udp_addr"]
+                    for client in self._ge_clients.values()
+                    if topic in client["subscriptions"]
+                ]
+
+            with self._udp_lock:
+                for addr in targets:
+                    self._udp_sock.sendto(packet, addr)
+
         except Exception:
             traceback.print_exc()
-
     # ──────────────────────────────────────────────────────
     # ACK / ERROR yardımcıları
     # ──────────────────────────────────────────────────────
